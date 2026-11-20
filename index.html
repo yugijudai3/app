@@ -153,6 +153,7 @@ function setup() {
 }
 setup();
 
+//次の問題に行くためのボタン
 document.getElementById("next").onclick = () => {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -160,6 +161,14 @@ document.getElementById("next").onclick = () => {
   ctx.restore();
   getrandomKanji();
 }
+
+//クリアボタン
+document.getElementById('clr').onclick = () => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.restore();
+};
 
 // 書く処理
 let activeId = null;
