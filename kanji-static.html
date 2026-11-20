@@ -26,7 +26,9 @@ h1{font-size:1.5rem;margin:8px 0 4px}
 .box{position:relative;width:min(80vw,300px);aspect-ratio:1;margin:14px auto;border:2px solid var(--grid);background:
 linear-gradient(90deg,transparent calc(50% - 1px),var(--grid) calc(50% - 1px),var(--grid) calc(50% + 1px),transparent calc(50% + 1px)),
 linear-gradient(0deg,transparent calc(50% - 1px),var(--grid) calc(50% - 1px),var(--grid) calc(50% + 1px),transparent calc(50% + 1px));background-color:var(--card)}
-.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(64vw,240px);line-height:1;opacity:.14}
+.box canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(64vw,240px);line-height:1;opacity:0;pointer-events:none;transition:opacity .2s}
+.ghost.on{opacity:.14}
 .ans{font-size:min(30vw,120px);text-align:center;line-height:1.1;color:var(--ok);margin:4px 0}
 .chk{display:flex;align-items:center;gap:8px;justify-content:center;margin:4px 0 12px;font-weight:700}
 .chk input{width:22px;height:22px;accent-color:var(--acc)}
@@ -56,8 +58,7 @@ const getGrades   = ()       => api("/grades");                             // �
 
 // 使用例
 (async () => {
-  console.log(await randomKanji());
-  console.log(listKanji({grade:5}));
+
 })();
 </script>
 
@@ -65,12 +66,12 @@ const getGrades   = ()       => api("/grades");                             // �
 <section>
   <h1>かんじノート</h1>
   <p class="sub">かんじを 書いて れんしゅう。</p>
-  <div class="card">
+  <!-- <div class="card">
     <b>おぼえた漢字 0 / 25</b>
     <div class="bar"><i style="width:0%"></i></div>
     <small class="sub">2回つづけて せいかいで「おぼえた」になります</small>
   </div>
-  <button class="btn main">かきとりを はじめる<small>ゆびで書いて、こたえを たしかめる</small></button>
+  <button class="btn main">かきとりを はじめる<small>ゆびで書いて、こたえを たしかめる</small></button> -->
 </section>
 
 <hr>
@@ -78,21 +79,25 @@ const getGrades   = ()       => api("/grades");                             // �
 <!-- かきとり画面 -->
 <section>
   <div class="card">
-    <p class="sub" style="text-align:center;margin:0">□に入る漢字を 書こう</p>
-    <div class="word kj"><span style="color:var(--ok)">□</span>山</div>
-    <p class="read">とざん</p>
-    <div class="box"><div class="ghost kj">登</div></div>
-    <label class="chk"><input type="checkbox"> なぞり書き(うすい手本)</label>
-    <div class="row">
-      <button class="btn">けす</button>
-      <button class="btn main">こたえを見る</button>
+    <p class="sub" style="text-align:center;margin:0"></p>
+    <div class="word kj"><span style="color:var(--ok)" id="word"></span></div>
+    <p class="read" id="read"></p>
+<div class="box">
+  <div class="ghost kj" id="gh"></div>
+  <canvas id="cv"></canvas>
+</div>
+<label class="chk"><input type="checkbox" id="tr"> なぞり書き(うすい手本)</label>
+<div class="row">
+  <button class="btn" id="clr">けす</button>
+  <button class="btn main" id="next">次の問題</button>
+</div>
     </div>
   </div>
 </section>
 
 <hr>
 
-<!-- こたえ表示 -->
+<!-- こたえ表示
 <section>
   <div class="card">
     <div class="ans kj">登</div>
@@ -106,7 +111,7 @@ const getGrades   = ()       => api("/grades");                             // �
 
 <hr>
 
-<!-- 結果画面 -->
+      結果画面 
 <section>
   <h1>おつかれさま！</h1>
   <div class="card">
@@ -117,8 +122,78 @@ const getGrades   = ()       => api("/grades");                             // �
       <button class="btn main">もう一回</button>
     </div>
   </div>
-</section>
+</section> -->
 
 </main>
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+async function getrandomKanji() {
+  const w = await randomKanji();
+  console.log(w.kanji)
+  document.getElementById("word").textContent = w.kanji;
+  document.getElementById("gh").textContent = w.kanji;
+};
+getrandomKanji();
+
+function setup() {
+
+
+  const r = cv.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr;          // 高解像度画面でもくっきり描く
+  cv.height = r.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#222';
+
+}
+setup();
+
+document.getElementById("next").onclick = () => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.restore();
+  getrandomKanji();
+}
+
+let drawing = false;
+const pos = (e) => {
+  const r = cv.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+};
+
+cv.addEventListener('pointerdown', (e) => {
+  drawing = true;
+  cv.setPointerCapture(e.pointerId);
+  const [x, y] = pos(e);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 0.1, y + 0.1);      // タップだけでも点が付く
+  ctx.stroke();
+});
+cv.addEventListener('pointermove', (e) => {
+  if (!drawing) return;
+  const [x, y] = pos(e);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+});
+['pointerup', 'pointercancel'].forEach((t) =>
+  cv.addEventListener(t, () => { drawing = false; })
+);
+
+document.getElementById('clr').onclick = () => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.restore();
+};
+document.getElementById('tr').onchange = (e) =>
+  document.getElementById('gh').classList.toggle('on', e.target.checked);
+</script>
 </body>
 </html>
