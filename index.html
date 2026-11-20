@@ -162,7 +162,7 @@ document.getElementById("next").onclick = () => {
 }
 
 // 書く処理
-let activeId = null;                       // いま書いているペン/指のID
+let activeId = null;
 const pos = (e) => {
   const r = cv.getBoundingClientRect();
   return [e.clientX - r.left, e.clientY - r.top];
@@ -170,8 +170,8 @@ const pos = (e) => {
 
 cv.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  activeId = e.pointerId;                  // 前の状態が残っていても上書きする
-  try { cv.setPointerCapture(e.pointerId); } catch (_) {}   // 失敗しても続ける
+  activeId = e.pointerId;
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   const [x, y] = pos(e);
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -181,30 +181,22 @@ cv.addEventListener('pointerdown', (e) => {
 });
 
 cv.addEventListener('pointermove', (e) => {
-  if (e.pointerId !== activeId) return;    // 別の指(手のひらなど)は無視
-  if (e.pointerType !== 'touch' && e.buttons === 0) { activeId = null; return; }  // 離れているのに残った状態を解除
+  if (e.pointerId !== activeId) return;     // ペンの浮かせ移動(hover)もここで無視される
   const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-  for (const ev of (events.length ? events : [e])) {   // 速い動きの途中の点も拾う
+  for (const ev of (events.length ? events : [e])) {
     const [x, y] = pos(ev);
     ctx.lineTo(x, y);
   }
   ctx.stroke();
 });
 
-const endStroke = (e) => { if (e.pointerId === activeId) activeId = null; };
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) =>
-  cv.addEventListener(t, endStroke)
+// lostpointercapture は使わない(遅れて届き、次の画を打ち切るため)
+['pointerup', 'pointercancel'].forEach((t) =>
+  cv.addEventListener(t, (e) => { if (e.pointerId === activeId) activeId = null; })
 );
 
-// 長押しメニューやテキスト選択で入力が途切れないようにする
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
-document.getElementById('clr').onclick = () => {
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, cv.width, cv.height);
-  ctx.restore();
-};
 document.getElementById('tr').onchange = (e) =>
   document.getElementById('gh').classList.toggle('on', e.target.checked);
 </script>
