@@ -225,6 +225,17 @@ cv.addEventListener('contextmenu', (e) => e.preventDefault());
 document.getElementById('tr').onchange = (e) =>
   document.getElementById('gh').classList.toggle('on', e.target.checked);
 
+//ダブルタップでのズームを無効
+let lastTap = 0;
+cv.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTap < 350) e.preventDefault();   // 350ms以内の2回目を無効にする
+  lastTap = now;
+}, { passive: false });
+
+cv.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+cv.addEventListener('dblclick', (e) => e.preventDefault());
+
 //リセットボタン
 document.getElementById('reset').onclick = () => {
   count = 0;
